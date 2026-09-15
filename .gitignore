@@ -1,0 +1,68 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+# arquivo de exemplo duplicado com nome digitado errado (não bate no padrão
+# ".env*" por causa do espaço/typo, então precisa de regra própria)
+/exemple .env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/generated/prisma
+
+# database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# bank statement fixtures and generated financial exports (sensitive data)
+/GENUS-APP/extratos/
+/GENUS-APP/resultados/
+/GENUS-APP/__pycache__/
+*.pyc
+
+# dump de depuração do extrator (texto bruto de extratos reais — nomes,
+# valores e documentos de clientes); só existe quando GENUS-APP/banks/cli.py
+# encontra o arquivo marcador abaixo, nunca deve ir pro controle de versão
+/GENUS-APP/_debug_extracts/
+/GENUS-APP/_debug_extracao.on
+
+# unwired/broken code kept as backup instead of deleting — see chat history
+/.removed-unused-code/

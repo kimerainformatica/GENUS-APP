@@ -1,0 +1,38 @@
+name: Qualidade
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: file:./ci.db
+      PYTHON_BIN: python3
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar o schema Prisma
+        run: npx prisma validate
+
+      - name: Verificar lint
+        run: npm run lint
+
+      - name: Compilar para produção
+        run: npm run build
+
+      - name: Validar sintaxe do extrator
+        run: python3 -m py_compile GENUS-APP/cli.py GENUS-APP/extractor.py GENUS-APP/parsers.py

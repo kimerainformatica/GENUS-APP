@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// Usuário administrativo do portal. O primeiro acesso cria o administrador;
+// novos usuários não podem se cadastrar pela tela pública.
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  role      Role     @default(USER)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessoes Sessao[]
+}
+
+// Sessões opacas: o navegador recebe o token aleatório e o banco guarda
+// somente o SHA-256, de modo que um vazamento do banco não revele sessões.
+model Sessao {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([usuarioId])
+  @@index([expiresAt])
+}
+
+// Cliente (pessoa física ou jurídica) da contabilidade — dono dos extratos importados.
+model Cliente {
+  id        String   @id @default(cuid())
+  nome      String
+  cpfCnpj   String?
+  email     String?
+  telefone  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  extratos Extrato[]
+
+  @@unique([cpfCnpj])
+}
+
+// Um extrato bancário importado (um PDF), com o resumo do período.
+// Os nomes dos campos seguem o que o bot GENUS-APP (GENUS-APP/parsers.py) extrai,
+// para que a importação grave aqui diretamente.
+model Extrato {
+  id            String    @id @default(cuid())
+  clienteId     String
+  cliente       Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  instituicao   String?
+  agencia       String?
+  conta         String?
+  periodoInicio DateTime?
+  periodoFim    DateTime?
+  saldoInicial  Float?
+  saldoFinal    Float?
+  totalEntradas Float?
+  totalSaidas   Float?
+  arquivoNome      String?
+  arquivoHash      String?
+  periodoDeclarado String?
+  somaCalculada    Float?
+  reconciliacaoOk  Boolean?
+  origem            String    @default("MANUAL")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transacoes Transacao[]
+
+  @@index([clienteId])
+  @@index([periodoInicio, periodoFim])
+  @@unique([clienteId, arquivoHash])
+}
+
+// Um lançamento dentro de um extrato.
+model Transacao {
+  id              String   @id @default(cuid())
+  extratoId       String
+  extrato         Extrato  @relation(fields: [extratoId], references: [id], onDelete: Cascade)
+  data            DateTime
+  tipo            String
+  tipoOperacao    String?
+  categoria       String   @default("Outros")
+  descricao       String
+  identificador   String?
+  nomeContraparte String?
+  tarifaTaxa      Float?
+  valorBruto      Float?
+  valor           Float
+  saldoApos       Float?
+  secao           String?
+  createdAt       DateTime @default(now())
+
+  @@index([extratoId])
+  @@index([data])
+  @@index([categoria])
+}
