@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-stress-test/
 /out/
 
 # production
@@ -51,6 +52,9 @@ next-env.d.ts
 *.db-journal
 *.db-wal
 *.db-shm
+# exceção: branch EXE versiona o build empacotado, incluindo o template.db
+# vazio (schema aplicado, zero dados) que vai dentro do .exe
+!/.DIST/**/*.db
 
 # bank statement fixtures and generated financial exports (sensitive data)
 /GENUS-APP/extratos/
@@ -66,3 +70,19 @@ next-env.d.ts
 
 # unwired/broken code kept as backup instead of deleting — see chat history
 /.removed-unused-code/
+
+# artefatos do protocolo de testes de estresse (cópias de banco e relatórios)
+/scripts/stress-tests/.tmp/
+/scripts/stress-tests/reports/
+
+# empacotamento Electron: instalador do Python (baixado sob demanda, ~25MB), o
+# banco template gerado a partir das migrations e a cópia do servidor Next.js
+# standalone — todos recriados por `npm run electron:prepare`, não fazem
+# sentido versionados
+/electron/resources/python-installer.exe
+/electron/resources/template.db
+/electron/resources/app-server/
+# .DIST/ (a saída do electron-builder) é versionada de propósito neste branch
+# (EXE) via Git LFS para os .exe — é o app pronto pra distribuir. No branch
+# main ela continua fora do controle de versão.
+/.DIST/builder-debug.yml
