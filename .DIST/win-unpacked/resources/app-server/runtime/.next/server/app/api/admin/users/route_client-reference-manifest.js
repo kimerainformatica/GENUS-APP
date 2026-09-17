@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/admin/users/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"C:\\genus_contabilidade-main (1)\\genus_contabilidade-main\\src\\app\\api\\admin\\users\\route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

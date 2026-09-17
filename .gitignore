@@ -86,3 +86,7 @@ next-env.d.ts
 # (EXE) via Git LFS para os .exe — é o app pronto pra distribuir. No branch
 # main ela continua fora do controle de versão.
 /.DIST/builder-debug.yml
+# cache de otimização de imagens do Next.js gerado em runtime ao usar o app
+# empacotado (não faz parte do build, e o Windows recusa nomes de arquivo
+# longos que aparecem aqui) — nunca deve ser versionado
+/.DIST/**/.next/cache/

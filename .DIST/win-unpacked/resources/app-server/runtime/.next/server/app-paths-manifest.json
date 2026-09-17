@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/api/admin/users/route": "app/api/admin/users/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(public)/login/page": "app/(public)/login/page.js",
+  "/page": "app/page.js",
+  "/(restric)/clientes/[id]/page": "app/(restric)/clientes/[id]/page.js",
+  "/(restric)/clientes/page": "app/(restric)/clientes/page.js",
+  "/(restric)/dashboard/page": "app/(restric)/dashboard/page.js",
+  "/(restric)/extratos/[id]/page": "app/(restric)/extratos/[id]/page.js",
+  "/(restric)/extratos/page": "app/(restric)/extratos/page.js",
+  "/(restric)/admin/criar-usuario/page": "app/(restric)/admin/criar-usuario/page.js"
+}

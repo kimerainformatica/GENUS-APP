@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/_global-error/page": "/_global-error",
+  "/api/admin/users/route": "/api/admin/users",
+  "/api/auth/login/route": "/api/auth/login",
+  "/favicon.ico/route": "/favicon.ico",
+  "/(public)/login/page": "/login",
+  "/page": "/",
+  "/(restric)/clientes/[id]/page": "/clientes/[id]",
+  "/(restric)/clientes/page": "/clientes",
+  "/(restric)/dashboard/page": "/dashboard",
+  "/(restric)/extratos/[id]/page": "/extratos/[id]",
+  "/(restric)/extratos/page": "/extratos",
+  "/(restric)/admin/criar-usuario/page": "/admin/criar-usuario"
+}
