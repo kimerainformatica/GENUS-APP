@@ -52,9 +52,6 @@ next-env.d.ts
 *.db-journal
 *.db-wal
 *.db-shm
-# exceção: branch EXE versiona o build empacotado, incluindo o template.db
-# vazio (schema aplicado, zero dados) que vai dentro do .exe
-!/.DIST/**/*.db
 
 # bank statement fixtures and generated financial exports (sensitive data)
 /GENUS-APP/extratos/
@@ -83,7 +80,6 @@ next-env.d.ts
 /electron/resources/template.db
 /electron/resources/app-server/
 /electron/resources/migrations/
-# .DIST/ (a saída do electron-builder) é versionada de propósito neste branch
-# (EXE) via Git LFS para os .exe — é o app pronto pra distribuir. No branch
-# main ela continua fora do controle de versão.
-/.DIST/builder-debug.yml
+# .DIST/ é a saída do electron-builder (o .exe pronto): é gerada por
+# `npm run electron:dist` e distribuída à parte, nunca versionada.
+/.DIST/
