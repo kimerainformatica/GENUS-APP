@@ -10,7 +10,7 @@ export default async function RestricLayout({ children }: { children: React.Reac
   const session = await requireSession();
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+      <header className="border-b border-border bg-card print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-3">
             <Image

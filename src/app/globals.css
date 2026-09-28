@@ -130,3 +130,12 @@
     @apply font-sans;
   }
 }
+
+@media print {
+  @page {
+    margin: 16mm 12mm;
+  }
+  body {
+    background: white;
+  }
+}

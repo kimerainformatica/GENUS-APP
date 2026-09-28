@@ -33,7 +33,11 @@ __all__ = [
     "to_br_date",
 ]
 
-TARIFA_TERMS = ("tarifa", "encargo", "iof", "juros", "manut.c/c")
+TARIFA_TERMS = ("tarifa", "encargo", "iof", "manut.c/c")
+# "juros" é ambíguo: também aparece em rendimento creditado (ex.: "Rendimento
+# de juros"), não só em encargo cobrado (ex.: "Juros de mora"). Por isso só
+# conta como tarifa quando o valor do lançamento é negativo (custo de fato).
+TARIFA_TERMS_SE_DEBITO = ("juros",)
 
 YEAR_PATTERN = re.compile(r"\b20\d{2}\b")
 
@@ -68,9 +72,13 @@ def fold(value: str) -> str:
     return re.sub(r"\s+", " ", sem_acento)
 
 
-def is_tarifa(descricao: str) -> bool:
+def is_tarifa(descricao: str, valor: float | None = None) -> bool:
     normalized = fold(descricao)
-    return any(term in normalized for term in TARIFA_TERMS)
+    if any(term in normalized for term in TARIFA_TERMS):
+        return True
+    if valor is not None and valor < 0 and any(term in normalized for term in TARIFA_TERMS_SE_DEBITO):
+        return True
+    return False
 
 
 def tipo_operacao(descricao: str, valor: float) -> str:
@@ -122,7 +130,7 @@ def build_transacao(
     """
     valor = round(float(valor), 2)
     nome_limpo = clean_line(nome).strip()
-    if is_tarifa(nome_limpo):
+    if is_tarifa(nome_limpo, valor):
         valor_bruto, tarifa_taxa = 0.0, abs(valor)
     else:
         valor_bruto, tarifa_taxa = valor, 0.0

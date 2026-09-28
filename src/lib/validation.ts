@@ -72,6 +72,16 @@ function validCnpj(value: string): boolean {
   return `${first}${second}` === value.slice(12);
 }
 
+const MARGEM_VALORES = new Set([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+
+export function margemPercentualField(value: FormDataEntryValue | null): number | null {
+  const raw = textField(value, "Margem", { max: 3 });
+  if (raw === null) return null;
+  const parsed = Number(raw);
+  if (!MARGEM_VALORES.has(parsed)) throw new Error("Margem inválida. Selecione um valor de 10% a 100%.");
+  return parsed;
+}
+
 export function cpfCnpjField(value: FormDataEntryValue | null): string | null {
   const raw = textField(value, "CPF/CNPJ", { max: 24 });
   if (!raw) return null;

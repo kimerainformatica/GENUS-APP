@@ -1,6 +1,7 @@
 import "server-only";
 
 import { requireSession } from "@/lib/auth/session";
+import { valorBrutoComMargem, valorLiquidoComMargem } from "@/lib/margem";
 import { sumMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import type { BankAccount, CategorySpend, SpendingTrendPoint, Transaction } from "@/lib/mock-bank-data";
@@ -28,6 +29,9 @@ export type DashboardData = {
   maiorGasto: number;
   saidasCount: number;
   quality: { imported: number; reconciled: number; divergent: number; unavailable: number };
+  margemPercentual: number | null;
+  entradaBrutaComMargem: number | null;
+  saldoLiquidoComMargem: number | null;
 };
 
 function isoDate(date: Date): string {
@@ -66,7 +70,7 @@ function ranked(map: Map<string, number>, limit: number): CategorySpend[] {
 export async function getDashboardData(filters: DashboardFilters): Promise<DashboardData> {
   await requireSession();
   const extratoWhere = filters.clienteId ? { clienteId: filters.clienteId } : {};
-  const [extratos, latestTransaction] = await Promise.all([
+  const [extratos, latestTransaction, clienteSelecionado] = await Promise.all([
     prisma.extrato.findMany({
       where: extratoWhere,
       select: {
@@ -90,6 +94,9 @@ export async function getDashboardData(filters: DashboardFilters): Promise<Dashb
       orderBy: { data: "desc" },
       select: { data: true },
     }),
+    filters.clienteId
+      ? prisma.cliente.findUnique({ where: { id: filters.clienteId }, select: { margemPercentual: true } })
+      : null,
   ]);
 
   const anchor = latestTransaction?.data ?? new Date();
@@ -183,6 +190,9 @@ export async function getDashboardData(filters: DashboardFilters): Promise<Dashb
     unavailable: imported.filter((item) => item.reconciliacaoOk === null).length,
   };
 
+  const margemPercentual = clienteSelecionado?.margemPercentual ?? null;
+  const currentBalance = sumMoney(bankAccounts.map((account) => account.balance));
+
   return {
     hasData: extratos.length > 0,
     hasTransactions: transacoes.length > 0,
@@ -206,7 +216,7 @@ export async function getDashboardData(filters: DashboardFilters): Promise<Dashb
       type: item.valor >= 0 ? "entrada" : "saida",
       value: Math.abs(item.valor),
     })),
-    currentBalance: sumMoney(bankAccounts.map((account) => account.balance)),
+    currentBalance,
     totalEntradas,
     totalSaidas,
     resultado: sumMoney([totalEntradas, -totalSaidas]),
@@ -215,5 +225,8 @@ export async function getDashboardData(filters: DashboardFilters): Promise<Dashb
     maiorGasto,
     saidasCount: saidas.length,
     quality,
+    margemPercentual,
+    entradaBrutaComMargem: valorBrutoComMargem(totalEntradas, margemPercentual),
+    saldoLiquidoComMargem: valorLiquidoComMargem(currentBalance, margemPercentual),
   };
 }

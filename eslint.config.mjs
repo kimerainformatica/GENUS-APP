@@ -12,7 +12,18 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated/packaged artifacts — not source, never lint them:
+    "generated/**",
+    "electron/resources/**",
+    ".DIST/**",
   ]),
+  {
+    rules: {
+      // Convention already used in this codebase (ex.: scripts/stress-tests) to
+      // discard a destructured/unused value on purpose, e.g. `{ x: _x, ...rest }`.
+      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+    },
+  },
 ]);
 
 export default eslintConfig;

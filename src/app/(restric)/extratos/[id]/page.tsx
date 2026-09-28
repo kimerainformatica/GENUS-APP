@@ -10,6 +10,7 @@ import { PageBack } from "@/components/navigation/page-back";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
+import { valorBrutoComMargem, valorLiquidoComMargem } from "@/lib/margem";
 
 function formatCurrency(value: number | null): string {
   if (value === null) return "—";
@@ -40,6 +41,9 @@ export default async function ExtratoDetailPage({ params }: { params: Promise<{ 
   if (!extrato) notFound();
 
   const pendentesCount = extrato.transacoes.filter((t) => isUnclassified(t.tipo, t.categoria)).length;
+  const margemPercentual = extrato.cliente.margemPercentual;
+  const entradaBrutaComMargem = extrato.totalEntradas !== null ? valorBrutoComMargem(extrato.totalEntradas, margemPercentual) : null;
+  const saldoLiquidoComMargem = extrato.saldoFinal !== null ? valorLiquidoComMargem(extrato.saldoFinal, margemPercentual) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -90,6 +94,26 @@ export default async function ExtratoDetailPage({ params }: { params: Promise<{ 
           <p className="mt-1 text-xl font-bold text-foreground">{formatCurrency(extrato.saldoFinal)}</p>
         </article>
       </section>
+
+      {margemPercentual ? (
+        <section className="mt-4 grid gap-4 sm:grid-cols-2">
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-sm text-muted-foreground">Entrada bruta com margem ({margemPercentual}%)</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{formatCurrency(entradaBrutaComMargem)}</p>
+          </article>
+          <article className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <p className="text-sm text-muted-foreground">Saldo líquido com margem ({margemPercentual}%)</p>
+            <p className="mt-1 text-xl font-bold text-foreground">{formatCurrency(saldoLiquidoComMargem)}</p>
+          </article>
+        </section>
+      ) : (
+        <section className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
+          <span>Defina a margem de {extrato.cliente.nome} no perfil para ver a entrada bruta e o saldo líquido com margem.</span>
+          <Link href={`/clientes/${extrato.cliente.id}`} className="shrink-0 font-medium text-primary hover:underline hover:underline-offset-4">
+            Ir para o perfil
+          </Link>
+        </section>
+      )}
 
       {extrato.origem === "IMPORTADO" && (
         <section className={`mt-4 rounded-2xl border p-4 text-sm ${extrato.reconciliacaoOk === false ? "border-destructive/30 bg-destructive/5 text-destructive" : extrato.reconciliacaoOk === true ? "border-emerald-600/30 bg-emerald-600/5 text-emerald-700" : "border-amber-500/30 bg-amber-500/5 text-amber-700"}`}>

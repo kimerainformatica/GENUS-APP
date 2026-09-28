@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
-import { cpfCnpjField, emailField, optionalIdField, textField } from "@/lib/validation";
+import { cpfCnpjField, emailField, margemPercentualField, optionalIdField, textField } from "@/lib/validation";
 
 function isUniqueError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
@@ -17,6 +17,7 @@ export async function saveCliente(formData: FormData) {
     cpfCnpj: cpfCnpjField(formData.get("cpfCnpj")),
     email: emailField(formData.get("email")),
     telefone: textField(formData.get("telefone"), "Telefone", { max: 30 }),
+    margemPercentual: margemPercentualField(formData.get("margemPercentual")),
   };
 
   try {

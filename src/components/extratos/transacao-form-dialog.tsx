@@ -81,7 +81,7 @@ export function TransacaoFormDialog({
             : "Data, descrição e valores do lançamento do extrato."}
         </DialogDescription>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
+        <form key={transacao?.id ?? "new"} onSubmit={handleSubmit} className="mt-4 flex max-h-[70vh] flex-col gap-3 overflow-y-auto pr-1">
           <input type="hidden" name="extratoId" value={extratoId} />
           {transacao && <input type="hidden" name="id" value={transacao.id} />}
 

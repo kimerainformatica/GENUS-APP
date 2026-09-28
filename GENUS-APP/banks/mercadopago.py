@@ -60,7 +60,7 @@ def parse(pdf_path, pages: list[str], full_text: str) -> dict[str, object]:
 
         valores = money_matches(conteudo)
         if len(valores) >= 2:
-            valor_match, saldo_match = valores[-2], valores[-1]
+            valor_match, _saldo_match = valores[-2], valores[-1]
             descricao_bruta = texto_antes_do_valor(conteudo, valor_match[1])
             descricao = clean_line(" ".join(buffer + [descricao_bruta]))
             descricao = re.sub(r"\s+\d{5,}\s*$", "", descricao).strip()

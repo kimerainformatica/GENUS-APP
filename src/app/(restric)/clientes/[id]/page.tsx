@@ -8,6 +8,7 @@ import {
   Landmark,
   Mail,
   Pencil,
+  Percent,
   Phone,
   ReceiptText,
   WalletCards,
@@ -47,6 +48,7 @@ export default async function ClienteProfilePage({ params }: { params: Promise<{
       cpfCnpj: true,
       email: true,
       telefone: true,
+      margemPercentual: true,
       createdAt: true,
       extratos: {
         orderBy: [{ periodoFim: "desc" }, { createdAt: "desc" }],
@@ -117,10 +119,18 @@ export default async function ClienteProfilePage({ params }: { params: Promise<{
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-3 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-3 text-sm text-muted-foreground"><Mail size={16} /><span className="truncate">{cliente.email ?? "E-mail não informado"}</span></div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground"><Phone size={16} /><span>{cliente.telefone ?? "Telefone não informado"}</span></div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground"><Landmark size={16} /><span>{bancos} banco(s) identificado(s)</span></div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Percent size={16} />
+            {cliente.margemPercentual ? (
+              <span>Margem de <span className="font-medium text-foreground">{cliente.margemPercentual}%</span></span>
+            ) : (
+              <span>Margem não definida</span>
+            )}
+          </div>
         </div>
       </section>
 

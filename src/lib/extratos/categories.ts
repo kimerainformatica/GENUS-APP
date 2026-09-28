@@ -17,9 +17,12 @@ function includesAny(value: string, terms: string[]): boolean {
   return terms.some((term) => value.includes(term));
 }
 
-export function classificarCategoria(tipoOperacao: GenusTipoOperacao | string | null, descricao: string): string {
+export function classificarCategoria(tipoOperacao: GenusTipoOperacao | string | null, descricao: string, valor: number): string {
   const text = descricao.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  if (includesAny(text, ["tarifa", "encargo", "iof", "juros", "manut.c/c"])) return "Tarifas bancárias";
+  // "juros" é ambíguo (aparece tanto em tarifa cobrada quanto em rendimento
+  // creditado, ex.: "Rendimento de juros") — só conta como tarifa quando o
+  // lançamento é de fato uma saída; os demais termos são sempre custo.
+  if (includesAny(text, ["tarifa", "encargo", "iof", "manut.c/c"]) || (valor < 0 && text.includes("juros"))) return "Tarifas bancárias";
   if (includesAny(text, ["darf", "das ", "imposto", "tributo", "inss", "fgts", "gps "])) return "Impostos e tributos";
   if (includesAny(text, ["salario", "folha", "pro labore", "adiantamento salarial"])) return "Folha e pessoas";
   if (includesAny(text, ["mercado", "supermercado", "restaurante", "lanchonete", "ifood", "padaria"])) return "Alimentação";

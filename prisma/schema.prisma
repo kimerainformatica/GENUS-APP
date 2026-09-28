@@ -53,6 +53,9 @@ model Cliente {
   cpfCnpj   String?
   email     String?
   telefone  String?
+  // Margem percentual aplicada aos valores do dashboard/extrato deste cliente
+  // (10 a 100, em passos de 10). Nula enquanto não definida no perfil do cliente.
+  margemPercentual Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

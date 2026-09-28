@@ -12,7 +12,10 @@ export type ClienteFormValues = {
   cpfCnpj: string | null;
   email: string | null;
   telefone: string | null;
+  margemPercentual: number | null;
 };
+
+const MARGEM_OPCOES = Array.from({ length: 10 }, (_, index) => (index + 1) * 10);
 
 export function ClienteFormDialog({ cliente, trigger }: { cliente?: ClienteFormValues; trigger: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -64,6 +67,23 @@ export function ClienteFormDialog({ cliente, trigger }: { cliente?: ClienteFormV
               <Input name="telefone" defaultValue={cliente?.telefone ?? ""} />
             </label>
           </div>
+
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-foreground">Margem aplicada</span>
+            <select
+              name="margemPercentual"
+              defaultValue={cliente?.margemPercentual ? String(cliente.margemPercentual) : ""}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <option value="">Sem margem definida</option>
+              {MARGEM_OPCOES.map((valor) => (
+                <option key={valor} value={valor}>{valor}%</option>
+              ))}
+            </select>
+            <span className="text-xs font-normal text-muted-foreground">
+              Usada para calcular o valor bruto de entrada e o saldo líquido no dashboard e no extrato deste cliente.
+            </span>
+          </label>
 
           {error && <p className="text-xs font-medium text-destructive">{error}</p>}
 

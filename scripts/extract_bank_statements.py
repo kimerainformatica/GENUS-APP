@@ -323,9 +323,9 @@ def write_csv(transactions: list[Transaction], output: Path) -> None:
         writer.writeheader()
         for transaction in transactions:
             row = asdict(transaction)
-            for field in ("valor", "saldo_apos"):
-                if row[field] is not None:
-                    row[field] = f"{row[field]:.2f}"
+            for key in ("valor", "saldo_apos"):
+                if row[key] is not None:
+                    row[key] = f"{row[key]:.2f}"
             writer.writerow(row)
 
 

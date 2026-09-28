@@ -79,7 +79,7 @@ export async function importExtratoPdf(formData: FormData): Promise<ImportExtrat
         data,
         tipo: classificarTipo(transaction.tipoOperacao, transaction.nomeContraparte),
         tipoOperacao: transaction.tipoOperacao,
-        categoria: classificarCategoria(transaction.tipoOperacao, transaction.nomeContraparte),
+        categoria: classificarCategoria(transaction.tipoOperacao, transaction.nomeContraparte, transaction.valorLiquido),
         descricao: transaction.nomeContraparte,
         identificador: null,
         nomeContraparte: transaction.nomeContraparte,

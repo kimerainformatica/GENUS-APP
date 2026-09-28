@@ -6,6 +6,7 @@ import { RecentTransactions } from "@/components/charts/recent-transactions";
 import { SpendingTrendChart } from "@/components/charts/spending-trend-chart";
 import { StatTile } from "@/components/charts/stat-tile";
 import { DashboardFilters } from "@/components/dashboard-filters";
+import { DashboardPrintButton } from "@/components/dashboard-print-button";
 import { UploadExtratoDialog } from "@/components/upload-extrato-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export default async function DashboardPage({
     prisma.extrato.count(),
     prisma.transacao.count(),
     prisma.extrato.findMany({ select: { clienteId: true, instituicao: true, agencia: true, conta: true } }),
-    prisma.cliente.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
+    prisma.cliente.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true, cpfCnpj: true } }),
     getDashboardData(filters),
   ]);
   const contasBancariasCount = new Set(contasExtratos.map((item) => `${item.clienteId}|${item.instituicao ?? "Banco"}|${item.agencia ?? ""}|${item.conta ?? ""}`)).size;
@@ -41,16 +42,26 @@ export default async function DashboardPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-8 sm:px-6 sm:py-10">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="hidden print:block print:mb-8">
+        <p className="text-sm font-medium text-primary">Relatório financeiro · Genus Contabilidade</p>
+        <h1 className="mt-1 text-2xl font-bold text-foreground">{clienteSelecionado?.nome}</h1>
+        {clienteSelecionado?.cpfCnpj && <p className="text-sm text-muted-foreground">{clienteSelecionado.cpfCnpj}</p>}
+        <p className="mt-1 text-sm text-muted-foreground">Período: {dashboard.periodLabel} · Gerado em {new Date().toLocaleDateString("pt-BR")}</p>
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-4 print:hidden">
         <div>
           <p className="text-sm font-medium text-primary">Inteligência financeira</p>
           <h1 className="mt-1 text-3xl font-bold text-foreground">Dashboard de gastos</h1>
           <p className="mt-2 text-muted-foreground">Entradas, gastos, contrapartes e qualidade dos extratos processados pelo GENUS-APP.</p>
         </div>
-        {clientesCount > 0 && <UploadExtratoDialog clientes={clientes} defaultClienteId={filters.clienteId} />}
+        <div className="flex flex-wrap gap-2">
+          {clienteSelecionado && dashboard.hasData && <DashboardPrintButton />}
+          {clientesCount > 0 && <UploadExtratoDialog clientes={clientes} defaultClienteId={filters.clienteId} />}
+        </div>
       </div>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:hidden">
         {overview.map(({ label, value, icon: Icon }) => (
           <article key={label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon size={20} aria-hidden="true" /></div>
@@ -61,14 +72,14 @@ export default async function DashboardPage({
       </section>
 
       {clientesCount === 0 ? (
-        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm print:hidden">
           <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
             <div><h2 className="text-lg font-bold text-foreground">Comece por um cliente</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre o cliente antes de importar os extratos bancários.</p></div>
             <Button nativeButton={false} render={<Link href="/clientes" />}>Ir para Clientes <ArrowUpRight size={17} /></Button>
           </div>
         </section>
       ) : (
-        <div className="mt-8"><DashboardFilters clientes={clientes} values={{ clienteId: filters.clienteId, inicio: dashboard.periodStart, fim: dashboard.periodEnd }} /></div>
+        <div className="mt-8 print:hidden"><DashboardFilters clientes={clientes} values={{ clienteId: filters.clienteId, inicio: dashboard.periodStart, fim: dashboard.periodEnd }} /></div>
       )}
 
       {!dashboard.hasData ? (
@@ -96,6 +107,24 @@ export default async function DashboardPage({
             <StatTile label="Maior gasto" value={formatCurrency(dashboard.maiorGasto)} />
             <StatTile label="Tarifas identificadas" value={formatCurrency(dashboard.totalTarifas)} />
           </section>
+
+          {clienteSelecionado && (
+            <section className="mt-4 grid gap-4 sm:grid-cols-2">
+              {dashboard.margemPercentual ? (
+                <>
+                  <StatTile label={`Entrada bruta com margem (${dashboard.margemPercentual}%)`} value={formatCurrency(dashboard.entradaBrutaComMargem as number)} />
+                  <StatTile label={`Saldo líquido com margem (${dashboard.margemPercentual}%)`} value={formatCurrency(dashboard.saldoLiquidoComMargem as number)} />
+                </>
+              ) : (
+                <article className="sm:col-span-2 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-border bg-card p-5 text-sm text-muted-foreground">
+                  <span>Defina a margem deste cliente no perfil para ver a entrada bruta e o saldo líquido com margem.</span>
+                  <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/clientes/${clienteSelecionado.id}`} />}>
+                    Ir para o perfil
+                  </Button>
+                </article>
+              )}
+            </section>
+          )}
 
           {!dashboard.hasTransactions ? (
             <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 text-sm text-amber-800">Há extratos cadastrados, mas nenhuma movimentação no período selecionado.</div>
