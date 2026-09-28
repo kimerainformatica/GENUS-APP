@@ -32,7 +32,7 @@
 //      barra o build se alguma migration apagar/renomear dados sem revisão.
 
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -105,6 +105,22 @@ function copyMigrations() {
   cpSync(path.join(ROOT, "prisma", "migrations"), target, { recursive: true });
 }
 
+// Pasta dos dados das instalações já em uso — ver "Pasta dos dados" em
+// electron/README.md. Mudar isso faz o app abrir "zerado" nas empresas.
+const EXPECTED_USER_DATA_DIR = "genus_contabilidade";
+
+function checkUserDataDir() {
+  step("Conferindo a pasta fixa dos dados do usuário");
+  const mainSource = readFileSync(path.join(ROOT, "electron", "main.cjs"), "utf8");
+  const match = /const USER_DATA_DIR_NAME = "([^"]+)";/.exec(mainSource);
+  if (!match || match[1] !== EXPECTED_USER_DATA_DIR) {
+    throw new Error(
+      `USER_DATA_DIR_NAME em electron/main.cjs deveria ser "${EXPECTED_USER_DATA_DIR}" (encontrado: ${match ? `"${match[1]}"` : "nenhum"}). ` +
+        "Mudar essa pasta faz o app abrir vazio nas empresas que já usam — ver \"Pasta dos dados\" em electron/README.md.",
+    );
+  }
+}
+
 function checkMigrationSafety() {
   step("Verificando se alguma migration apaga ou renomeia dados");
   execFileSync(process.execPath, [path.join(ROOT, "scripts", "check-migrations.mjs")], { cwd: ROOT, stdio: "inherit" });
@@ -127,6 +143,7 @@ function ensurePythonInstaller() {
 }
 
 function main() {
+  checkUserDataDir();
   checkMigrationSafety();
   copyRuntimeBundle();
   rebuildNativeModulesForElectron();

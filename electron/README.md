@@ -48,6 +48,19 @@ npm run electron:dev       # abre a janela usando os recursos já preparados
   é uma cópia fabricada). O resto do app funciona sem Python; só a
   importação de extratos em PDF depende dele.
 
+## ⚠️ Pasta dos dados — NUNCA mudar
+
+Os dados de cada empresa ficam em **`%APPDATA%\genus_contabilidade\`**
+(`genus.db` + `backups\`), fora do `.exe`. Esse caminho é **fixado no código**
+(`USER_DATA_DIR_NAME` em `electron/main.cjs`), independente do `"name"` ou do
+`productName` do `package.json` — renomear o pacote/produto é seguro.
+
+**Não altere `USER_DATA_DIR_NAME`.** Se ele mudar, a versão nova abre uma
+pasta vazia e a empresa vê o app "zerado": os dados continuam no disco, mas o
+app deixa de enxergá-los. Se um dia for realmente preciso trocar a pasta, a
+versão nova tem que primeiro **mover** a pasta antiga para a nova antes de
+abrir o banco — nunca só trocar o nome.
+
 ## Atualizações e banco de dados
 
 Uma versão nova é só um `.exe` novo: o cliente substitui o arquivo antigo e
@@ -84,7 +97,7 @@ Prisma, então o banco continua compatível com `npx prisma migrate status`.
    para a coluna nova antes de apagar a velha, se for o caso) e só então
    adicione a linha `-- genus:revisado` nele.
 4. Aumente `"version"` no `package.json` (aparece no nome do `.exe` e dos
-   backups).
+   backups). Não mexa em `USER_DATA_DIR_NAME` (ver "Pasta dos dados" acima).
 5. `npm run electron:dist`. O passo de preparação roda `npm run db:check`
    antes de tudo e **barra o build** se alguma migration nova apagar,
    renomear ou reescrever dados sem a revisão acima, se tiver coluna

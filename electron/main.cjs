@@ -3,7 +3,7 @@
 // ELECTRON_RUN_AS_NODE — não é preciso empacotar um Node.js separado) e abre
 // uma janela apontando para ele. Cuida também de:
 //   - inicializar o banco do usuário a partir do template na primeira vez
-//     que o app roda (em %APPDATA%/Genus Contabilidade/genus.db, fora da
+//     que o app roda (em %APPDATA%/genus_contabilidade/genus.db, fora da
 //     pasta de instalação — assim funciona mesmo com o .exe rodando de um
 //     local só leitura) e, a cada abertura, atualizá-lo para o schema desta
 //     versão com backup antes (ver db-migrator.cjs);
@@ -19,6 +19,24 @@ const fs = require("node:fs");
 const net = require("node:net");
 const http = require("node:http");
 const { migrateUserDb, MigrationError } = require("./db-migrator.cjs");
+
+// ============================================================================
+// ⚠️  NÃO ALTERE ESTE NOME — É ONDE FICAM OS DADOS DAS EMPRESAS  ⚠️
+//
+// Pasta dos dados do usuário: %APPDATA%\genus_contabilidade\ (genus.db e
+// backups/). Por padrão o Electron deriva essa pasta do "name" do
+// package.json; aqui ela é FIXADA para que renomear o pacote ou o produto
+// nunca mude o caminho. Se este valor mudar, a versão nova do .exe abre uma
+// pasta vazia e a empresa vê o app "zerado" (os dados continuam no disco, mas
+// o app deixa de enxergá-los). "genus_contabilidade" é o nome que as
+// instalações já em uso têm hoje. Ver "Pasta dos dados" em electron/README.md.
+// ============================================================================
+const USER_DATA_DIR_NAME = "genus_contabilidade";
+
+// --user-data-dir explícito (testes, suporte) continua tendo prioridade.
+if (!app.commandLine.hasSwitch("user-data-dir")) {
+  app.setPath("userData", path.join(app.getPath("appData"), USER_DATA_DIR_NAME));
+}
 
 const PROJECT_ROOT = path.join(__dirname, "..");
 const IS_PACKAGED = app.isPackaged;
