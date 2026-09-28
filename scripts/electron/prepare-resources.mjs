@@ -25,7 +25,11 @@
 //      já aplicado (via `prisma migrate deploy`) e zero dados — é a cópia que
 //      o app usa para inicializar o banco do usuário no primeiro uso;
 //   5. garante que o instalador do Python foi baixado (delega para
-//      download-python-installer.mjs).
+//      download-python-installer.mjs);
+//   6. copia prisma/migrations para electron/resources/migrations — o app
+//      empacotado aplica as pendentes no banco do usuário a cada abertura
+//      (electron/db-migrator.cjs). Antes de tudo, scripts/check-migrations.mjs
+//      barra o build se alguma migration apagar/renomear dados sem revisão.
 
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
@@ -94,6 +98,18 @@ function buildTemplateDb() {
   console.log(`Template gerado em ${templateDb}`);
 }
 
+function copyMigrations() {
+  step("Copiando prisma/migrations para electron/resources/migrations (aplicadas no banco do usuário a cada abertura)");
+  const target = path.join(RESOURCES_DIR, "migrations");
+  rmSync(target, { recursive: true, force: true });
+  cpSync(path.join(ROOT, "prisma", "migrations"), target, { recursive: true });
+}
+
+function checkMigrationSafety() {
+  step("Verificando se alguma migration apaga ou renomeia dados");
+  execFileSync(process.execPath, [path.join(ROOT, "scripts", "check-migrations.mjs")], { cwd: ROOT, stdio: "inherit" });
+}
+
 function ensurePythonInstaller() {
   step("Garantindo instalador do Python em electron/resources/");
   try {
@@ -111,9 +127,11 @@ function ensurePythonInstaller() {
 }
 
 function main() {
+  checkMigrationSafety();
   copyRuntimeBundle();
   rebuildNativeModulesForElectron();
   buildTemplateDb();
+  copyMigrations();
   ensurePythonInstaller();
   console.log("\nRecursos prontos para o electron-builder (npm run electron:dist).");
 }

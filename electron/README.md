@@ -48,6 +48,55 @@ npm run electron:dev       # abre a janela usando os recursos já preparados
   é uma cópia fabricada). O resto do app funciona sem Python; só a
   importação de extratos em PDF depende dele.
 
+## Atualizações e banco de dados
+
+Uma versão nova é só um `.exe` novo: o cliente substitui o arquivo antigo e
+abre. O banco dele (`%APPDATA%\genus_contabilidade\genus.db`) fica fora do
+`.exe` e é **atualizado sozinho** na primeira abertura da versão nova
+(`electron/db-migrator.cjs`):
+
+1. confere a integridade do arquivo — se estiver corrompido, o app não abre
+   e indica a pasta de backups (nunca migra por cima de um banco estragado);
+2. se houver migration nova, faz um **backup completo** antes em
+   `%APPDATA%\genus_contabilidade\backups\` (guarda os 10 últimos);
+3. aplica cada migration pendente numa transação própria, conferindo as
+   referências entre tabelas antes de confirmar — se algo falhar, aquela
+   etapa é desfeita inteira e o app mostra o erro com o botão
+   "Abrir pasta de backups";
+4. se o banco já foi atualizado por uma versão **mais nova** e alguém abrir
+   um `.exe` antigo, o app se recusa a abrir em vez de gravar dados
+   incompatíveis.
+
+O controle usa a mesma tabela (`_prisma_migrations`) e o mesmo checksum do
+Prisma, então o banco continua compatível com `npx prisma migrate status`.
+
+### Checklist para lançar uma atualização
+
+1. Mudou o schema? Rode `npm run db:migrate` (gera a migration nova em
+   `prisma/migrations/`). **Nunca edite uma migration já commitada** — ela
+   pode já ter rodado no banco do cliente; toda mudança vira migration nova.
+2. Prefira mudanças que só **adicionam**: coluna nova opcional (`Int?`,
+   `String?`) ou com `@default(...)`, tabela nova, índice novo. Coluna
+   obrigatória sem default quebra em tabelas que já têm linhas.
+3. Remover/renomear coluna ou tabela exige cuidado: o Prisma no SQLite
+   "recria" a tabela copiando os dados, mas descarta em silêncio o que saiu do
+   schema. Nesses casos, confira o `migration.sql` gerado (e copie os dados
+   para a coluna nova antes de apagar a velha, se for o caso) e só então
+   adicione a linha `-- genus:revisado` nele.
+4. Aumente `"version"` no `package.json` (aparece no nome do `.exe` e dos
+   backups).
+5. `npm run electron:dist`. O passo de preparação roda `npm run db:check`
+   antes de tudo e **barra o build** se alguma migration nova apagar,
+   renomear ou reescrever dados sem a revisão acima, se tiver coluna
+   obrigatória sem default, ou se uma migration já commitada foi editada.
+
+Para testar uma atualização antes de entregar, rode o app apontando para uma
+cópia do banco real (nunca para o original):
+`npx electron . --user-data-dir="C:\caminho\de\teste"` com o `genus.db`
+copiado para essa pasta. No terminal do VS Code, rode antes
+`Remove-Item Env:ELECTRON_RUN_AS_NODE` — o VS Code define essa variável e ela
+faz o Electron abrir como Node puro.
+
 ## Duas armadilhas reais que já foram resolvidas aqui (não mexer sem saber por quê)
 
 1. **`next build` sem `--webpack` quebra o .exe silenciosamente em outra
@@ -99,4 +148,6 @@ Por isso:
 ## Resetar tudo (voltar ao estado de fábrica)
 
 Apague `%APPDATA%\genus_contabilidade\` — o app recria o banco a partir do
-template na próxima abertura.
+template na próxima abertura. Isso apaga também os backups; para restaurar um
+backup em vez de resetar, feche o app e copie o arquivo desejado de
+`backups\` por cima de `genus.db`.

@@ -159,7 +159,7 @@ async function main() {
 
   const { child, getLog } = startServer(dbPath);
   let serverCrashed = false;
-  child.on("exit", (code, signal) => {
+  child.on("exit", (code) => {
     if (code !== 0 && code !== null) serverCrashed = true;
   });
 

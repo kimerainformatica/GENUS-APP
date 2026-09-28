@@ -5,17 +5,20 @@
 //   - inicializar o banco do usuário a partir do template na primeira vez
 //     que o app roda (em %APPDATA%/Genus Contabilidade/genus.db, fora da
 //     pasta de instalação — assim funciona mesmo com o .exe rodando de um
-//     local só leitura);
+//     local só leitura) e, a cada abertura, atualizá-lo para o schema desta
+//     versão com backup antes (ver db-migrator.cjs);
 //   - detectar se o Python está instalado (necessário para importar extratos
 //     em PDF) e, se não estiver, oferecer para abrir o instalador oficial
 //     empacotado junto do app.
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { app, BrowserWindow, dialog, shell } = require("electron");
 const { spawn, execFileSync } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 const net = require("node:net");
 const http = require("node:http");
+const { migrateUserDb, MigrationError } = require("./db-migrator.cjs");
 
 const PROJECT_ROOT = path.join(__dirname, "..");
 const IS_PACKAGED = app.isPackaged;
@@ -33,6 +36,9 @@ const TEMPLATE_DB_PATH = IS_PACKAGED
 const PYTHON_INSTALLER_PATH = IS_PACKAGED
   ? path.join(RESOURCES_BASE, "python-installer.exe")
   : path.join(PROJECT_ROOT, "electron", "resources", "python-installer.exe");
+const MIGRATIONS_DIR = IS_PACKAGED
+  ? path.join(RESOURCES_BASE, "migrations")
+  : path.join(PROJECT_ROOT, "prisma", "migrations");
 
 let serverProcess = null;
 let mainWindow = null;
@@ -53,15 +59,46 @@ function ensureUserDb() {
   const userDataDir = app.getPath("userData");
   fs.mkdirSync(userDataDir, { recursive: true });
   const dbPath = path.join(userDataDir, "genus.db");
-  if (!fs.existsSync(dbPath)) {
-    if (!fs.existsSync(TEMPLATE_DB_PATH)) {
-      throw new Error(
-        `Banco template não encontrado em ${TEMPLATE_DB_PATH}. Rode "npm run electron:prepare" antes de empacotar o app.`,
-      );
-    }
+  // Sem template, o banco é criado vazio e o migrator aplica todas as
+  // migrations do zero — o template é só um atalho para a primeira abertura.
+  if (!fs.existsSync(dbPath) && fs.existsSync(TEMPLATE_DB_PATH)) {
     fs.copyFileSync(TEMPLATE_DB_PATH, dbPath);
   }
   return dbPath;
+}
+
+async function upgradeUserDb(dbPath) {
+  // Usa a cópia do better-sqlite3 que o prepare-resources recompilou para o
+  // ABI do Electron; a de node_modules do projeto é compilada para o Node.
+  const Database = require(path.join(SERVER_DIR, "node_modules", "better-sqlite3"));
+  const backupsDir = path.join(path.dirname(dbPath), "backups");
+  try {
+    const result = await migrateUserDb({
+      dbPath,
+      migrationsDir: MIGRATIONS_DIR,
+      backupsDir,
+      appVersion: app.getVersion(),
+      Database,
+      log: (message) => console.log(`[db] ${message}`),
+    });
+    if (result.applied.length > 0) console.log(`[db] ${result.applied.length} migration(s) aplicada(s).`);
+  } catch (error) {
+    if (error instanceof MigrationError && fs.existsSync(backupsDir)) {
+      const { response } = await dialog.showMessageBox({
+        type: "error",
+        title: "Genus Contabilidade",
+        message: "Não foi possível atualizar o banco de dados.",
+        detail: error.message,
+        buttons: ["Abrir pasta de backups", "Fechar"],
+        defaultId: 1,
+      });
+      if (response === 0) await shell.openPath(backupsDir);
+      const handled = new Error(error.message);
+      handled.alreadyReported = true;
+      throw handled;
+    }
+    throw error;
+  }
 }
 
 function detectPython() {
@@ -155,6 +192,7 @@ async function startServer() {
   }
 
   const dbPath = ensureUserDb();
+  await upgradeUserDb(dbPath);
   const pythonBin = (await ensurePython()) || "python";
   const port = await getFreePort();
 
@@ -189,7 +227,7 @@ async function createWindow() {
   try {
     port = await startServer();
   } catch (error) {
-    dialog.showErrorBox("Genus Contabilidade", `Não foi possível iniciar o app:\n${error.message}`);
+    if (!error.alreadyReported) dialog.showErrorBox("Genus Contabilidade", `Não foi possível iniciar o app:\n${error.message}`);
     app.quit();
     return;
   }

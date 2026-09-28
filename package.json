@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:status": "prisma migrate status",
+    "db:check": "node scripts/check-migrations.mjs",
     "postinstall": "prisma generate",
     "test:load": "node scripts/stress-tests/01-load-concurrency-test.mjs",
     "test:crash": "node scripts/stress-tests/02-crash-interruption-test.mjs",
@@ -69,6 +70,7 @@
     "npmRebuild": false,
     "files": [
       "electron/main.cjs",
+      "electron/db-migrator.cjs",
       "package.json",
       "!node_modules/**/*",
       "!**/node_modules/**/*"
@@ -81,6 +83,10 @@
       {
         "from": "electron/resources/template.db",
         "to": "template.db"
+      },
+      {
+        "from": "electron/resources/migrations",
+        "to": "migrations"
       },
       {
         "from": "electron/resources/python-installer.exe",
