@@ -119,6 +119,14 @@ function checkUserDataDir() {
         "Mudar essa pasta faz o app abrir vazio nas empresas que já usam — ver \"Pasta dos dados\" em electron/README.md.",
     );
   }
+  // O desinstalador (electron/installer.nsh) apaga essa mesma pasta quando o
+  // usuário confirma — os dois caminhos não podem divergir.
+  const installerScript = readFileSync(path.join(ROOT, "electron", "installer.nsh"), "utf8");
+  if (!installerScript.includes(`RMDir /r "$APPDATA\\${EXPECTED_USER_DATA_DIR}"`)) {
+    throw new Error(
+      `electron/installer.nsh não aponta para "$APPDATA\\${EXPECTED_USER_DATA_DIR}" — o desinstalador precisa usar a mesma pasta de dados que o app.`,
+    );
+  }
 }
 
 function checkMigrationSafety() {

@@ -14,9 +14,29 @@ Isso roda em sequência:
 1. `next build --webpack` — build de produção do Next.js.
 2. `scripts/electron/prepare-resources.mjs` — monta tudo que o app precisa
    em runtime (ver detalhes abaixo).
-3. `electron-builder` — empacota tudo num `.exe` Windows portátil, gerado em
-   **`.DIST/Genus Contabilidade <versão>.exe`** (e a versão "descompactada"
-   equivalente em `.DIST/win-unpacked/`).
+3. `electron-builder` — gera o **instalador** Windows em
+   **`.DIST/Genus Contabilidade Setup <versão>.exe`** (e a versão
+   "descompactada" equivalente em `.DIST/win-unpacked/`). É esse instalador
+   que vai para a empresa.
+
+## Instalar, atualizar e desinstalar (na empresa)
+
+- **Instalar:** rodar `Genus Contabilidade Setup <versão>.exe`. O Windows pede
+  permissão de administrador uma vez; o programa vai para
+  `C:\Program Files\Genus Contabilidade\`, para todos os usuários do PC, com
+  atalhos na Área de Trabalho e no menu Iniciar.
+- **Atualizar:** rodar o instalador da versão nova por cima — não precisa
+  desinstalar antes. O instalador troca só os arquivos do programa; os dados
+  em `%APPDATA%\genus_contabilidade\` não são tocados, e o banco é atualizado
+  na primeira abertura (ver "Atualizações e banco de dados").
+- **Desinstalar:** pelo "Adicionar ou remover programas" do Windows. Remove o
+  programa e **pergunta** se deve apagar também os dados (padrão: NÃO). Para
+  apagar, o usuário precisa confirmar duas vezes. Durante uma atualização ou
+  numa desinstalação silenciosa (`/S`), os dados nunca são apagados. A
+  lógica fica em `electron/installer.nsh`.
+- **Quem usava o `.exe` portátil antigo (versão 0.1.0 portátil):** basta rodar
+  o instalador e depois apagar o `.exe` portátil. Os dados são os mesmos
+  (mesma pasta em `%APPDATA%`) e aparecem no programa instalado.
 
 Rodar só o passo de preparação (útil para testar com `npm run electron:dev`
 sem gerar o `.exe` inteiro): `npm run electron:prepare`.
@@ -63,8 +83,7 @@ abrir o banco — nunca só trocar o nome.
 
 ## Atualizações e banco de dados
 
-Uma versão nova é só um `.exe` novo: o cliente substitui o arquivo antigo e
-abre. O banco dele (`%APPDATA%\genus_contabilidade\genus.db`) fica fora do
+Uma versão nova é só um instalador novo, rodado por cima do anterior. O banco (`%APPDATA%\genus_contabilidade\genus.db`) fica fora do
 `.exe` e é **atualizado sozinho** na primeira abertura da versão nova
 (`electron/db-migrator.cjs`):
 
@@ -151,12 +170,11 @@ Por isso:
   usuário clica em "Mais informações" → "Executar assim mesmo".
 - Em máquinas com política de **Controle de Aplicativos** mais restrita
   (comum em ambientes corporativos, e foi o caso desta própria máquina de
-  build), o `.exe` portátil pode ser **bloqueado** antes mesmo do
-  SmartScreen aparecer. Se isso acontecer, a alternativa é distribuir a
-  pasta `.DIST/win-unpacked/` inteira (copiada, por exemplo, via zip) e
-  rodar `Genus Contabilidade.exe` de dentro dela — é o mesmo app, sem o
-  empacotador NSIS de arquivo único, e não esbarrou nessa política durante
-  os testes.
+  build), o instalador pode ser **bloqueado** antes mesmo do SmartScreen
+  aparecer. Se isso acontecer, a alternativa é distribuir a pasta
+  `.DIST/win-unpacked/` inteira (copiada, por exemplo, via zip) e rodar
+  `Genus Contabilidade.exe` de dentro dela — é o mesmo app, sem instalador,
+  e usa a mesma pasta de dados.
 
 ## Resetar tudo (voltar ao estado de fábrica)
 

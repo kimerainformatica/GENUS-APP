@@ -1,6 +1,6 @@
 {
   "name": "genus_contabilidade",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Portal de contabilidade: clientes, extratos bancários e importação de PDFs.",
   "author": "Genus Contabilidade",
@@ -94,7 +94,20 @@
       }
     ],
     "win": {
-      "target": "portable"
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Genus Contabilidade",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "include": "electron/installer.nsh",
+      "artifactName": "Genus Contabilidade Setup ${version}.${ext}"
     }
   }
 }
