@@ -76,6 +76,8 @@ next-env.d.ts
 # banco template gerado a partir das migrations e a cópia do servidor Next.js
 # standalone — todos recriados por `npm run electron:prepare`, não fazem
 # sentido versionados
+/electron/resources/python/
+/electron/resources/.cache/
 /electron/resources/python-installer.exe
 /electron/resources/template.db
 /electron/resources/app-server/

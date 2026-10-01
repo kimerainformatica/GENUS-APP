@@ -1,6 +1,6 @@
 {
   "name": "genus_contabilidade",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Portal de contabilidade: clientes, extratos bancários e importação de PDFs.",
   "author": "Genus Contabilidade",
@@ -89,8 +89,8 @@
         "to": "migrations"
       },
       {
-        "from": "electron/resources/python-installer.exe",
-        "to": "python-installer.exe"
+        "from": "electron/resources/python",
+        "to": "python"
       }
     ],
     "win": {

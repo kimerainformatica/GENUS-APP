@@ -7,13 +7,12 @@
 //     pasta de instalação — assim funciona mesmo com o .exe rodando de um
 //     local só leitura) e, a cada abertura, atualizá-lo para o schema desta
 //     versão com backup antes (ver db-migrator.cjs);
-//   - detectar se o Python está instalado (necessário para importar extratos
-//     em PDF) e, se não estiver, oferecer para abrir o instalador oficial
-//     empacotado junto do app.
+//   - passar ao servidor o Python embutido no instalador (com o pdfplumber),
+//     usado na importação de extratos em PDF.
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { app, BrowserWindow, dialog, shell } = require("electron");
-const { spawn, execFileSync } = require("node:child_process");
+const { spawn } = require("node:child_process");
 const path = require("node:path");
 const fs = require("node:fs");
 const net = require("node:net");
@@ -51,9 +50,9 @@ const SERVER_DIR = IS_PACKAGED
 const TEMPLATE_DB_PATH = IS_PACKAGED
   ? path.join(RESOURCES_BASE, "template.db")
   : path.join(PROJECT_ROOT, "electron", "resources", "template.db");
-const PYTHON_INSTALLER_PATH = IS_PACKAGED
-  ? path.join(RESOURCES_BASE, "python-installer.exe")
-  : path.join(PROJECT_ROOT, "electron", "resources", "python-installer.exe");
+const BUNDLED_PYTHON = IS_PACKAGED
+  ? path.join(RESOURCES_BASE, "python", "python.exe")
+  : path.join(PROJECT_ROOT, "electron", "resources", "python", "python.exe");
 const MIGRATIONS_DIR = IS_PACKAGED
   ? path.join(RESOURCES_BASE, "migrations")
   : path.join(PROJECT_ROOT, "prisma", "migrations");
@@ -119,71 +118,13 @@ async function upgradeUserDb(dbPath) {
   }
 }
 
-function detectPython() {
-  const candidates = process.platform === "win32" ? ["python", "py", "python3"] : ["python3", "python"];
-  for (const bin of candidates) {
-    try {
-      execFileSync(bin, ["--version"], { stdio: "ignore", windowsHide: true });
-      return bin;
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-async function runPythonInstaller() {
-  await dialog.showMessageBox({
-    type: "info",
-    title: "Instalador do Python",
-    message: 'O instalador oficial do python.org vai abrir agora.',
-    detail: 'Marque a opção "Add python.exe to PATH" durante a instalação — sem ela o Genus Contabilidade não vai encontrar o Python depois.',
-    buttons: ["OK"],
-  });
-  await new Promise((resolve) => {
-    const child = spawn(PYTHON_INSTALLER_PATH, [], { detached: true, stdio: "ignore" });
-    child.on("exit", resolve);
-    child.on("error", resolve);
-    child.unref();
-  });
-}
-
-/** Verifica o Python e, se faltar, oferece instalar. Nunca bloqueia o app: a importação de extratos é a única funcionalidade que depende disso. */
-async function ensurePython() {
-  const found = detectPython();
-  if (found) return found;
-
-  const hasInstaller = fs.existsSync(PYTHON_INSTALLER_PATH);
-  const { response } = await dialog.showMessageBox({
-    type: "warning",
-    title: "Python não encontrado",
-    message: "O Genus Contabilidade usa o Python para importar extratos em PDF, e ele não foi encontrado nesta máquina.",
-    detail:
-      "O resto do app funciona normalmente sem o Python — só a importação de extratos vai ficar indisponível até ele ser instalado.",
-    buttons: hasInstaller ? ["Instalar Python agora", "Continuar sem instalar"] : ["Abrir página de download", "Continuar sem instalar"],
-    defaultId: 0,
-    cancelId: 1,
-  });
-
-  if (response !== 0) return null;
-
-  if (hasInstaller) {
-    await runPythonInstaller();
-  } else {
-    shell.openExternal("https://www.python.org/downloads/windows/");
-    return null;
-  }
-
-  const foundAfter = detectPython();
-  await dialog.showMessageBox({
-    type: foundAfter ? "info" : "warning",
-    title: "Verificação do Python",
-    message: foundAfter
-      ? "Python encontrado! A importação de extratos já deve funcionar."
-      : "Ainda não encontrei o Python instalado. Se a instalação pediu para reiniciar, feche e abra o Genus Contabilidade de novo.",
-    buttons: ["OK"],
-  });
-  return foundAfter;
+// Python embutido no instalador (scripts/electron/prepare-python.mjs), com o
+// pdfplumber já instalado. Não depende do Python do PC, de PATH nem de internet.
+function bundledPython() {
+  if (fs.existsSync(BUNDLED_PYTHON)) return BUNDLED_PYTHON;
+  // Só acontece em dev sem `npm run electron:prepare`: usa o Python do PC.
+  console.warn(`[python] Python embutido não encontrado em ${BUNDLED_PYTHON}; usando o do sistema.`);
+  return "python";
 }
 
 function waitForServer(port, timeoutMs = 30_000) {
@@ -211,7 +152,7 @@ async function startServer() {
 
   const dbPath = ensureUserDb();
   await upgradeUserDb(dbPath);
-  const pythonBin = (await ensurePython()) || "python";
+  const pythonBin = bundledPython();
   const port = await getFreePort();
 
   serverProcess = spawn(process.execPath, [path.join(SERVER_DIR, "server.js")], {

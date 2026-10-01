@@ -60,13 +60,15 @@ npm run electron:dev       # abre a janela usando os recursos já preparados
   `template.db` (um SQLite com o schema do Prisma já aplicado, zero dados)
   para `%APPDATA%\genus_contabilidade\genus.db`, e é isso que o app usa dali
   em diante. Apagar esse arquivo "reseta" o app para o estado de fábrica.
-- **Python**: ao abrir, o app tenta detectar `python`/`py`/`python3` no
-  PATH. Se não achar, mostra um aviso oferecendo rodar o instalador oficial
-  do python.org que vai empacotado dentro do `.exe`
-  (`electron/resources/python-installer.exe`, baixado direto de
-  `python.org` por `scripts/electron/download-python-installer.mjs` — nunca
-  é uma cópia fabricada). O resto do app funciona sem Python; só a
-  importação de extratos em PDF depende dele.
+- **Python embutido**: o instalador leva um Python próprio (a distribuição
+  "embeddable" oficial do python.org, versão fixada em
+  `scripts/electron/prepare-python.mjs`) com as dependências do extrator de
+  PDF (`scripts/requirements-extratos.txt`, hoje o `pdfplumber`) já
+  instaladas, em `resources\python\`. O app usa sempre esse Python — não
+  depende do Python do PC, de PATH, de `pip` nem de internet. Para adicionar
+  uma dependência ao extrator, inclua-a no `requirements-extratos.txt`: o
+  próximo `electron:prepare` instala no Python embutido e confere que o
+  `pdfplumber` importa (se falhar, o build é barrado).
 
 ## ⚠️ Pasta dos dados — NUNCA mudar
 

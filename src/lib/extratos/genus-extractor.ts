@@ -147,7 +147,10 @@ export function runGenusExtractor(pdfPath: string): Promise<GenusExtractionResul
       }
       stdout += chunk;
     });
-    child.stderr.on("data", () => undefined);
+    let stderr = "";
+    child.stderr.on("data", (chunk: string) => {
+      stderr = (stderr + chunk).slice(-4000);
+    });
     child.on("error", (error: NodeJS.ErrnoException) => {
       console.error("[GENUS-APP] Falha ao iniciar o Python", {
         code: error.code,
@@ -165,7 +168,13 @@ export function runGenusExtractor(pdfPath: string): Promise<GenusExtractionResul
     child.on("close", (code) => {
       clearTimeout(timer);
       if (settled) return;
-      if (!stdout.trim()) return finishError(`O extrator não retornou dados (código ${code ?? "desconhecido"}).`);
+      if (!stdout.trim()) {
+        // O Python falhou antes de responder (ex.: dependência ausente). A última
+        // linha do stderr costuma ser a causa real — sem ela o usuário só via "código 1".
+        if (stderr.trim()) console.error("[GENUS-APP] Saída de erro do extrator:\n" + stderr);
+        const motivo = stderr.trim().split(/\r?\n/).pop()?.trim().slice(0, 300);
+        return finishError(`O extrator não retornou dados (código ${code ?? "desconhecido"})${motivo ? `: ${motivo}` : "."}`);
+      }
       try {
         const parsed = JSON.parse(stdout) as unknown;
         if (parsed && typeof parsed === "object" && "error" in parsed) {

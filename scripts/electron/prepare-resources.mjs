@@ -24,8 +24,8 @@
 //   4. gera electron/resources/template.db: um SQLite com o schema do Prisma
 //      já aplicado (via `prisma migrate deploy`) e zero dados — é a cópia que
 //      o app usa para inicializar o banco do usuário no primeiro uso;
-//   5. garante que o instalador do Python foi baixado (delega para
-//      download-python-installer.mjs);
+//   5. monta o Python embutido com as dependências do extrator de PDF em
+//      electron/resources/python (delega para prepare-python.mjs);
 //   6. copia prisma/migrations para electron/resources/migrations — o app
 //      empacotado aplica as pendentes no banco do usuário a cada abertura
 //      (electron/db-migrator.cjs). Antes de tudo, scripts/check-migrations.mjs
@@ -35,6 +35,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { preparePython } from "./prepare-python.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..", "..");
@@ -134,36 +135,21 @@ function checkMigrationSafety() {
   execFileSync(process.execPath, [path.join(ROOT, "scripts", "check-migrations.mjs")], { cwd: ROOT, stdio: "inherit" });
 }
 
-function ensurePythonInstaller() {
-  step("Garantindo instalador do Python em electron/resources/");
-  try {
-    execFileSync(process.execPath, [path.join(__dirname, "download-python-installer.mjs")], {
-      cwd: ROOT,
-      stdio: "inherit",
-    });
-  } catch {
-    console.warn(
-      "\nAVISO: não foi possível baixar o instalador do Python agora (sem internet?). " +
-        "O .exe ainda funciona, mas o botão \"Instalar Python\" ficará indisponível até o " +
-        "arquivo existir em electron/resources/python-installer.exe.",
-    );
-  }
-}
-
-function main() {
+async function main() {
   checkUserDataDir();
   checkMigrationSafety();
   copyRuntimeBundle();
   rebuildNativeModulesForElectron();
   buildTemplateDb();
   copyMigrations();
-  ensurePythonInstaller();
+  // Sem o Python embutido a importação de extratos não funciona no PC da
+  // empresa — por isso aqui uma falha barra o build (não é só um aviso).
+  step("Montando o Python embutido (python.org embeddable + dependências do extrator) em electron/resources/python");
+  await preparePython();
   console.log("\nRecursos prontos para o electron-builder (npm run electron:dist).");
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error("\nFalha ao preparar recursos:", error.message);
   process.exit(1);
-}
+});
