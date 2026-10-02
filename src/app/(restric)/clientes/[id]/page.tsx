@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { requireSession } from "@/lib/auth/session";
 import { formatCurrency, sumMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
-import { optionalIdField } from "@/lib/validation";
 
 function formatDate(value: Date | null): string {
   return value ? value.toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—";
@@ -37,7 +36,8 @@ function importStatus(origin: string, reconciliation: boolean | null) {
 export default async function ClienteProfilePage({ params }: { params: Promise<{ id: string }> }) {
   await requireSession();
   const { id: rawId } = await params;
-  const id = optionalIdField(rawId);
+  // Endereço com id malformado = "não encontrado", em vez de erro na página.
+  const id = /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : null;
   if (!id) notFound();
 
   const cliente = await prisma.cliente.findUnique({

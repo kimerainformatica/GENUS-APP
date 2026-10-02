@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { gerarCodigoRecuperacao } from "@/lib/actions/conta";
+import { callAction } from "@/lib/call-action";
 import { RecoveryCodeDisplay } from "@/components/auth/recovery-code-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ export function RecoveryCodeSection({ hasCode, generatedAt }: { hasCode: boolean
     const formData = new FormData(form);
     setError("");
     startTransition(async () => {
-      const result = await gerarCodigoRecuperacao(formData);
+      const result = await callAction(() => gerarCodigoRecuperacao(formData));
       if (!result.success) return setError(result.error);
       form.reset();
       setCode(result.codigoRecuperacao ?? null);

@@ -2,7 +2,9 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { KeyRound, ShieldCheck, ShieldOff, UserCheck, UserX } from "lucide-react";
-import { alterarCargoUsuario, alterarStatusUsuario, redefinirSenhaUsuario, type UsuarioActionResult } from "@/lib/actions/usuarios";
+import { alterarCargoUsuario, alterarStatusUsuario, redefinirSenhaUsuario } from "@/lib/actions/usuarios";
+import type { ActionResult } from "@/lib/action-types";
+import { callAction } from "@/lib/call-action";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,7 +24,7 @@ function ConfirmAction({
   description: string;
   confirmLabel: string;
   danger?: boolean;
-  run: () => Promise<UsuarioActionResult>;
+  run: () => Promise<ActionResult>;
 }) {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
@@ -49,7 +51,7 @@ function ConfirmAction({
             className={danger ? "bg-destructive text-white hover:bg-destructive/90" : undefined}
             onClick={() =>
               startTransition(async () => {
-                const result = await run();
+                const result = await callAction(run);
                 if (!result.success) return setError(result.error);
                 setOpen(false);
               })
@@ -73,7 +75,7 @@ function ResetPasswordDialog({ id, nome }: { id: string; nome: string }) {
     const formData = new FormData(event.currentTarget);
     setError("");
     startTransition(async () => {
-      const result = await redefinirSenhaUsuario(id, formData);
+      const result = await callAction(() => redefinirSenhaUsuario(id, formData));
       if (!result.success) return setError(result.error);
       setOpen(false);
     });

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { importExtratoPdf, type ImportExtratoResult } from "@/lib/actions/import-extrato";
+import { callAction } from "@/lib/call-action";
 
 const SUPPORTED_BANKS = ["Santander", "Bradesco", "Itaú", "Inter", "Nubank", "Mercado Pago", "PicPay"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -83,8 +84,8 @@ export function UploadExtratoDialog({
         const formData = new FormData();
         formData.set("clienteId", clienteId);
         formData.set("file", file);
-        const result = await importExtratoPdf(formData);
-        done.push(result);
+        const result = await callAction(() => importExtratoPdf(formData));
+        done.push("fileName" in result ? result : { success: false, fileName: file.name, error: result.error });
         setResults([...done]);
       }
       router.refresh();

@@ -5,6 +5,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, Dia
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveTransacao } from "@/lib/actions/extratos";
+import { callAction } from "@/lib/call-action";
 import { EXPENSE_CATEGORIES } from "@/lib/extratos/categories";
 
 export type TransacaoFormValues = {
@@ -61,12 +62,9 @@ export function TransacaoFormDialog({
     const formData = new FormData(e.currentTarget);
     setError(null);
     startTransition(async () => {
-      try {
-        await saveTransacao(formData);
-        setOpen(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Não foi possível salvar o lançamento.");
-      }
+      const result = await callAction(() => saveTransacao(formData));
+      if (!result.success) return setError(result.error);
+      setOpen(false);
     });
   }
 

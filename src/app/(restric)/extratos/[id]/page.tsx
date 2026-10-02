@@ -72,7 +72,7 @@ export default async function ExtratoDetailPage({ params }: { params: Promise<{ 
               </Button>
             }
           />
-          <DeleteButton itemLabel="este extrato" onDelete={deleteExtrato.bind(null, extrato.id)} />
+          <DeleteButton itemLabel="este extrato" onDelete={deleteExtrato.bind(null, extrato.id)} redirectTo="/extratos" />
         </div>
       </div>
 

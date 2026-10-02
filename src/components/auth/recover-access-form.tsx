@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { recuperarAcessoAdmin } from "@/lib/actions/auth";
+import { callAction } from "@/lib/call-action";
 import { RecoveryCodeDisplay } from "@/components/auth/recovery-code-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,7 @@ export function RecoverAccessForm() {
     const formData = new FormData(event.currentTarget);
     setError("");
     startTransition(async () => {
-      const result = await recuperarAcessoAdmin(formData);
+      const result = await callAction(() => recuperarAcessoAdmin(formData));
       if (!result.success) return setError(result.error);
       setNewCode(result.codigoRecuperacao ?? null);
     });

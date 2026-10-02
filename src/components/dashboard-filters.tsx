@@ -25,7 +25,14 @@ export function DashboardFilters({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm">
+    // A key recria o formulário quando o filtro aplicado muda (ex.: "Limpar"):
+    // os campos são não controlados e, sem isso, continuariam mostrando o
+    // filtro anterior enquanto o dashboard já mostra o período padrão.
+    <form
+      key={`${values.clienteId ?? ""}|${values.inicio}|${values.fim}`}
+      onSubmit={submit}
+      className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm"
+    >
       <label className="flex min-w-44 flex-col gap-1 text-xs font-medium text-muted-foreground">
         Cliente
         <select

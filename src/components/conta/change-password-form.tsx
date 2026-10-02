@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { alterarMinhaSenha } from "@/lib/actions/conta";
+import { callAction } from "@/lib/call-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -30,7 +31,7 @@ export function ChangePasswordForm({
     setError("");
     setDone(false);
     startTransition(async () => {
-      const result = await alterarMinhaSenha(formData);
+      const result = await callAction(() => alterarMinhaSenha(formData));
       if (!result.success) return setError(result.error);
       form.reset();
       if (redirectTo) {

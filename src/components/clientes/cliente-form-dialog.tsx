@@ -5,6 +5,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, Dia
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveCliente } from "@/lib/actions/clientes";
+import { callAction } from "@/lib/call-action";
 
 export type ClienteFormValues = {
   id: string;
@@ -28,12 +29,9 @@ export function ClienteFormDialog({ cliente, trigger }: { cliente?: ClienteFormV
     const formData = new FormData(e.currentTarget);
     setError(null);
     startTransition(async () => {
-      try {
-        await saveCliente(formData);
-        setOpen(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Não foi possível salvar o cliente.");
-      }
+      const result = await callAction(() => saveCliente(formData));
+      if (!result.success) return setError(result.error);
+      setOpen(false);
     });
   }
 

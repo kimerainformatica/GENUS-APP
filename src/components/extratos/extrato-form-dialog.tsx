@@ -6,6 +6,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, Dia
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { saveExtrato } from "@/lib/actions/extratos";
+import { callAction } from "@/lib/call-action";
 
 export type ExtratoFormValues = {
   id: string;
@@ -51,16 +52,13 @@ export function ExtratoFormDialog({
     const formData = new FormData(e.currentTarget);
     setError(null);
     startTransition(async () => {
-      try {
-        const result = await saveExtrato(formData);
-        setOpen(false);
-        if (result.created) {
-          router.push(`/extratos/${result.id}`);
-        } else {
-          router.refresh();
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Não foi possível salvar o extrato.");
+      const result = await callAction(() => saveExtrato(formData));
+      if (!result.success) return setError(result.error);
+      setOpen(false);
+      if (result.created) {
+        router.push(`/extratos/${result.id}`);
+      } else {
+        router.refresh();
       }
     });
   }

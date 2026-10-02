@@ -1,42 +1,46 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
-
-// `deleteExtrato` chama redirect("/extratos") após excluir com sucesso —
-// isso lança um erro especial (digest "NEXT_REDIRECT;...") que o Next.js
-// usa para navegar. Sem checar isso aqui, o try/catch abaixo o interceptaria
-// como se fosse uma falha real e mostraria um erro em vez de navegar.
-function isRedirectError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "digest" in error && typeof error.digest === "string" && error.digest.startsWith("NEXT_REDIRECT");
-}
+import type { ActionResult } from "@/lib/action-types";
+import { callAction } from "@/lib/call-action";
 
 export function DeleteButton({
   onDelete,
   itemLabel,
+  redirectTo,
 }: {
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<ActionResult>;
   itemLabel: string;
+  /** Para onde ir depois de excluir (ex.: a página do item excluído deixa de existir). */
+  redirectTo?: string;
 }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function handleDelete() {
     setError(null);
     startTransition(async () => {
-      try {
-        await onDelete();
-      } catch (err) {
-        if (isRedirectError(err)) throw err;
-        setError(err instanceof Error ? err.message : "Não foi possível excluir.");
-      }
+      const result = await callAction(onDelete);
+      if (!result.success) return setError(result.error);
+      setOpen(false);
+      if (redirectTo) router.push(redirectTo);
     });
   }
 
   return (
-    <Dialog onOpenChange={(open) => !open && setError(null)}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setError(null);
+      }}
+    >
       <DialogTrigger
         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
         aria-label={`Excluir ${itemLabel}`}
@@ -46,7 +50,7 @@ export function DeleteButton({
       <DialogContent>
         <DialogTitle>Excluir {itemLabel}?</DialogTitle>
         <DialogDescription>Essa ação não pode ser desfeita.</DialogDescription>
-        {error && <p className="mt-2 text-xs font-medium text-destructive">{error}</p>}
+        {error && <p role="alert" className="mt-2 text-xs font-medium text-destructive">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <DialogClose className={buttonVariants({ variant: "ghost" })}>Cancelar</DialogClose>
           <Button

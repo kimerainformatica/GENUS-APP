@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { login, setupAdmin } from "@/lib/actions/auth";
+import { callAction } from "@/lib/call-action";
 import { RecoveryCodeDisplay } from "@/components/auth/recovery-code-display";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ export function LoginForm({ initialSetup }: { initialSetup: boolean }) {
     const formData = new FormData(event.currentTarget);
     setError("");
     startTransition(async () => {
-      const result = initialSetup ? await setupAdmin(formData) : await login(formData);
+      const result = await callAction(() => (initialSetup ? setupAdmin(formData) : login(formData)));
       if (!result.success) return setError(result.error);
       // Primeiro administrador: mostra o código de recuperação e só entra depois.
       if (result.codigoRecuperacao) return setSetupDone({ code: result.codigoRecuperacao, credentials: formData });
@@ -35,7 +36,7 @@ export function LoginForm({ initialSetup }: { initialSetup: boolean }) {
   function enterAfterSetup() {
     if (!setupDone) return;
     startTransition(async () => {
-      const result = await login(setupDone.credentials);
+      const result = await callAction(() => login(setupDone.credentials));
       if (!result.success) {
         setSetupDone(null);
         router.refresh(); // a tela deixa de ser "criar administrador" e vira o login normal
