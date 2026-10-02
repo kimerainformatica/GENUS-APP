@@ -9,7 +9,7 @@ export default async function CriarUsuarioPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6 sm:py-10">
-      <PageBack href="/dashboard" label="Voltar ao dashboard" />
+      <PageBack href="/admin/usuarios" label="Voltar para usuários" />
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border bg-gradient-to-r from-primary/10 to-card px-6 py-6 sm:px-8">

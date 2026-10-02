@@ -11,6 +11,7 @@ async function authorizeAdmin() {
   const session = await getSession();
   if (!session) return { error: NextResponse.json({ error: "Não autenticado." }, { status: 401 }) };
   if (session.user.role !== "ADMIN") return { error: NextResponse.json({ error: "Sem permissão." }, { status: 403 }) };
+  if (session.user.trocarSenha) return { error: NextResponse.json({ error: "Crie a sua senha antes de continuar." }, { status: 403 }) };
   return { session };
 }
 

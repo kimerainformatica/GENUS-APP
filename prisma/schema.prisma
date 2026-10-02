@@ -26,6 +26,13 @@ model Usuario {
   senhaHash String
   role      Role     @default(USER)
   ativo     Boolean  @default(true)
+  // Senha temporária definida por um admin: o usuário é obrigado a criar a
+  // própria senha no próximo acesso (/trocar-senha).
+  trocarSenha Boolean @default(false)
+  // Só administradores: hash (bcrypt) do código de recuperação mostrado uma
+  // única vez, usado em /recuperar-acesso se o admin esquecer a senha.
+  codigoRecuperacaoHash String?
+  codigoRecuperacaoEm   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

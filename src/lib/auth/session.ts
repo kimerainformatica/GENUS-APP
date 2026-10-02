@@ -41,7 +41,9 @@ export const getSession = cache(async () => {
     select: {
       id: true,
       expiresAt: true,
-      usuario: { select: { id: true, nome: true, email: true, role: true, ativo: true } },
+      usuario: {
+        select: { id: true, nome: true, email: true, role: true, ativo: true, trocarSenha: true, codigoRecuperacaoHash: true },
+      },
     },
   });
 
@@ -54,13 +56,21 @@ export const getSession = cache(async () => {
       name: sessao.usuario.nome,
       email: sessao.usuario.email,
       role: sessao.usuario.role,
+      trocarSenha: sessao.usuario.trocarSenha,
+      temCodigoRecuperacao: sessao.usuario.codigoRecuperacaoHash !== null,
     },
   };
 });
 
-export async function requireSession() {
+/**
+ * Exige login. Quem está com senha temporária (definida por um admin) é levado
+ * a /trocar-senha e não acessa mais nada até criar a própria — só a página de
+ * troca passa `allowPendingPasswordChange`.
+ */
+export async function requireSession(options?: { allowPendingPasswordChange?: boolean }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.user.trocarSenha && !options?.allowPendingPasswordChange) redirect("/trocar-senha");
   return session;
 }
 
@@ -68,6 +78,11 @@ export async function requireAdmin() {
   const session = await requireSession();
   if (session.user.role !== "ADMIN") redirect("/dashboard");
   return session;
+}
+
+/** Encerra as sessões do usuário (todas, ou todas menos a atual). */
+export async function deleteUserSessions(usuarioId: string, exceptSessionId?: string): Promise<void> {
+  await prisma.sessao.deleteMany({ where: { usuarioId, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) } });
 }
 
 export async function deleteCurrentSession(): Promise<void> {

@@ -3,10 +3,12 @@
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { createSession, deleteCurrentSession } from "@/lib/auth/session";
+import { generateRecoveryCode, hashRecoveryCode, verifyRecoveryCode } from "@/lib/auth/recovery-code";
+import { createSession, deleteCurrentSession, deleteUserSessions } from "@/lib/auth/session";
 import { cleanText, normalizeEmail, passwordError, validEmail } from "@/lib/auth/validation";
 
-export type AuthResult = { success: true } | { success: false; error: string };
+/** `codigoRecuperacao` só vem preenchido quando um código novo foi gerado — é a única vez que ele é exibido. */
+export type AuthResult = { success: true; codigoRecuperacao?: string } | { success: false; error: string };
 
 type Attempt = { count: number; resetAt: number };
 const globalForAuth = globalThis as unknown as { genusLoginAttempts?: Map<string, Attempt> };
@@ -55,16 +57,67 @@ export async function setupAdmin(formData: FormData): Promise<AuthResult> {
   if (validationError) return { success: false, error: validationError };
 
   const senhaHash = await bcrypt.hash(password, 12);
+  const codigoRecuperacao = generateRecoveryCode();
+  const codigoRecuperacaoHash = await hashRecoveryCode(codigoRecuperacao);
   try {
-    const usuario = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       if ((await tx.usuario.count()) > 0) throw new Error("SETUP_ALREADY_DONE");
-      return tx.usuario.create({ data: { nome, email, senhaHash, role: "ADMIN" }, select: { id: true } });
+      return tx.usuario.create({
+        data: { nome, email, senhaHash, role: "ADMIN", codigoRecuperacaoHash, codigoRecuperacaoEm: new Date() },
+        select: { id: true },
+      });
     });
-    await createSession(usuario.id, false);
-    return { success: true };
+    // Sem criar sessão aqui: a tela de login redireciona quem já está logado, e
+    // o código de recuperação sumiria antes de ser lido. O login-form entra
+    // (login) depois que o admin confirma que guardou o código.
+    return { success: true, codigoRecuperacao };
   } catch {
     return { success: false, error: "O administrador inicial já foi configurado. Entre com sua conta." };
   }
+}
+
+const RECOVERY_FAILED = "E-mail ou código de recuperação inválidos.";
+
+/**
+ * "Esqueci minha senha" de administrador: e-mail + código de recuperação.
+ * O código usado é invalidado e um novo é gerado e devolvido para ser
+ * guardado — cada código vale uma única vez.
+ */
+export async function recuperarAcessoAdmin(formData: FormData): Promise<AuthResult> {
+  const email = normalizeEmail(formData.get("email"));
+  const codigo = cleanText(formData.get("codigo"), 64);
+  const novaSenha = cleanText(formData.get("novaSenha"), 128);
+  const confirmacao = cleanText(formData.get("confirmacao"), 128);
+
+  if (!validEmail(email) || !codigo) return { success: false, error: RECOVERY_FAILED };
+  const senhaInvalida = passwordError(novaSenha);
+  if (senhaInvalida) return { success: false, error: senhaInvalida };
+  if (novaSenha !== confirmacao) return { success: false, error: "A confirmação não confere com a nova senha." };
+  if (isRateLimited(`recuperar:${email}`)) return { success: false, error: "Muitas tentativas. Aguarde alguns minutos e tente novamente." };
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { email },
+    select: { id: true, role: true, ativo: true, codigoRecuperacaoHash: true },
+  });
+  const valido =
+    usuario?.ativo && usuario.role === "ADMIN" && usuario.codigoRecuperacaoHash
+      ? await verifyRecoveryCode(codigo, usuario.codigoRecuperacaoHash)
+      : false;
+  if (!usuario || !valido) return { success: false, error: RECOVERY_FAILED };
+
+  attempts.delete(`recuperar:${email}`);
+  const novoCodigo = generateRecoveryCode();
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: {
+      senhaHash: await bcrypt.hash(novaSenha, 12),
+      trocarSenha: false,
+      codigoRecuperacaoHash: await hashRecoveryCode(novoCodigo),
+      codigoRecuperacaoEm: new Date(),
+    },
+  });
+  await deleteUserSessions(usuario.id);
+  return { success: true, codigoRecuperacao: novoCodigo };
 }
 
 export async function logout(): Promise<never> {
