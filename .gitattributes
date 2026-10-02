@@ -1,3 +1,0 @@
-# Binário do app empacotado (branch EXE) via Git LFS — o .exe portátil sozinho
-# passa de 100MB, limite rígido de arquivo do GitHub sem LFS.
-*.exe filter=lfs diff=lfs merge=lfs -text
